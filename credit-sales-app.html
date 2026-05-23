@@ -46,10 +46,12 @@
       window.currentUser = user;
       document.getElementById('sidebar-user-label').textContent = 'Signed in as ' + user.email;
       document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-content').classList.add('visible');
       window.loadFromFirestore();
     } else {
       window.currentUser = null;
       document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('app-content').classList.remove('visible');
     }
   });
 
@@ -155,6 +157,9 @@
     overflow: hidden;
   }
   #login-screen.hidden { display: none; }
+  /* App content hidden until logged in */
+  .app-content { display: none; }
+  .app-content.visible { display: flex; width: 100%; }
   #particles-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
   .login-brand {
     position: absolute; left: 0; top: 0; bottom: 0; width: 55%;
@@ -433,6 +438,7 @@
   </div>
 </div>
 
+<div class="app-content" id="app-content">
 <!-- SIDEBAR -->
 <nav class="sidebar">
   <div class="sidebar-logo">
@@ -1625,35 +1631,52 @@ async function importData(e) {
     try {
       const parsed = JSON.parse(evt.target.result);
       if (!parsed.customers || !parsed.sales) { alert('Invalid backup file.'); return; }
-      if (!confirm('This will replace all current data with the backup. Continue?')) return;
+      if (!confirm('This will upload all your backup data to the cloud. Continue?')) return;
 
-      // Load into memory
+      showLoadingOverlay(true);
+
+      // Load into memory and local storage
       db = parsed;
       saveDB();
 
-      // Push everything to Firestore
-      showLoadingOverlay(true);
-      const cols = ['customers','sales','saleItems','payments','returns','repairs'];
-      const ops = [];
-      for (const col of cols) {
-        if (db[col]) {
-          db[col].forEach(record => ops.push({ col, record }));
-        }
-      }
       if (window.batchSaveToFirestore) {
-        // Firebase has a 500 ops per batch limit, so split into chunks
+        // Build all operations
+        const cols = ['customers','sales','saleItems','payments','returns','repairs'];
+        const ops = [];
+        for (const col of cols) {
+          if (db[col] && db[col].length > 0) {
+            db[col].forEach(record => {
+              if (record && record.id !== undefined) {
+                ops.push({ col, record });
+              }
+            });
+          }
+        }
+
+        if (ops.length === 0) {
+          showLoadingOverlay(false);
+          alert('No data found in backup file.');
+          return;
+        }
+
+        // Firebase batch limit is 500 — split into chunks of 400 to be safe
         const chunkSize = 400;
         for (let i = 0; i < ops.length; i += chunkSize) {
           await window.batchSaveToFirestore(ops.slice(i, i + chunkSize));
         }
+
+        showLoadingOverlay(false);
+        renderDashboard();
+        alert('✅ ' + ops.length + ' records successfully saved to cloud! Your data will now persist across all devices.');
+      } else {
+        showLoadingOverlay(false);
+        renderDashboard();
+        alert('Data loaded locally. Firebase not ready — please try again in a moment.');
       }
-      showLoadingOverlay(false);
-      renderPage(document.getElementById('page-title').textContent.toLowerCase());
-      alert('Data restored and saved to cloud successfully!');
     } catch(err) {
       showLoadingOverlay(false);
-      console.error(err);
-      alert('Could not read backup file.');
+      console.error('Import error:', err);
+      alert('Could not read backup file. Please make sure it is a valid JERAPECA backup.');
     }
   };
   reader.readAsText(file);
@@ -1713,5 +1736,6 @@ initParticles();
 // Firebase auth state listener (in module script) will call loadFromFirestore and renderDashboard
 // If Firebase not loaded yet, show login screen by default (it's already visible)
 </script>
+</div><!-- end app-content -->
 </body>
 </html>
