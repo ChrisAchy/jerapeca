@@ -1617,20 +1617,44 @@ function exportData() {
   a.download = `jerapeca-backup-${today()}.json`;
   a.click();
 }
-function importData(e) {
+async function importData(e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = evt => {
+  reader.onload = async evt => {
     try {
       const parsed = JSON.parse(evt.target.result);
       if (!parsed.customers || !parsed.sales) { alert('Invalid backup file.'); return; }
-      if (confirm('This will replace all current data with the backup. Continue?')) {
-        db = parsed; saveDB();
-        renderPage(document.getElementById('page-title').textContent.toLowerCase());
-        alert('Data restored successfully!');
+      if (!confirm('This will replace all current data with the backup. Continue?')) return;
+
+      // Load into memory
+      db = parsed;
+      saveDB();
+
+      // Push everything to Firestore
+      showLoadingOverlay(true);
+      const cols = ['customers','sales','saleItems','payments','returns','repairs'];
+      const ops = [];
+      for (const col of cols) {
+        if (db[col]) {
+          db[col].forEach(record => ops.push({ col, record }));
+        }
       }
-    } catch { alert('Could not read backup file.'); }
+      if (window.batchSaveToFirestore) {
+        // Firebase has a 500 ops per batch limit, so split into chunks
+        const chunkSize = 400;
+        for (let i = 0; i < ops.length; i += chunkSize) {
+          await window.batchSaveToFirestore(ops.slice(i, i + chunkSize));
+        }
+      }
+      showLoadingOverlay(false);
+      renderPage(document.getElementById('page-title').textContent.toLowerCase());
+      alert('Data restored and saved to cloud successfully!');
+    } catch(err) {
+      showLoadingOverlay(false);
+      console.error(err);
+      alert('Could not read backup file.');
+    }
   };
   reader.readAsText(file);
   e.target.value = '';
