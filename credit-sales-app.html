@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>JERAPECA — Credit Sales Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -48,11 +48,13 @@
       document.getElementById('sidebar-user-label').textContent = 'Signed in as ' + user.email;
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app-content').classList.add('visible');
+      if(window.updateMobileNavVisibility) window.updateMobileNavVisibility(true);
       window.loadFromFirestore();
     } else {
       window.currentUser = null;
       document.getElementById('login-screen').classList.remove('hidden');
       document.getElementById('app-content').classList.remove('visible');
+      if(window.updateMobileNavVisibility) window.updateMobileNavVisibility(false);
     }
   });
 
@@ -417,6 +419,176 @@
   @media (max-width: 900px) {
     .stat-grid { grid-template-columns: repeat(2, 1fr); }
   }
+
+  /* ===== MOBILE RESPONSIVE ===== */
+  @media (max-width: 768px) {
+
+    /* Hide desktop sidebar */
+    .sidebar { display: none; }
+
+    /* Main takes full width, adds bottom padding for nav bar */
+    .main { margin-left: 0; padding-bottom: 70px; }
+
+    /* Topbar adjustments */
+    .topbar { padding: 12px 16px; }
+    .topbar h2 { font-size: 16px; }
+    .btn { padding: 7px 12px; font-size: 12px; }
+    .btn-sm { padding: 5px 8px; font-size: 11px; }
+
+    /* Content padding */
+    .content { padding: 16px; }
+
+    /* Stat grid — 2 columns on mobile */
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-value { font-size: 18px; }
+    .stat-label { font-size: 10px; }
+
+    /* Dashboard two-col grids become single col */
+    #page-dashboard > div[style*="grid-template-columns:1fr 1fr"],
+    #page-reports > div[style*="grid-template-columns:1fr 1fr"] {
+      display: flex !important; flex-direction: column; gap: 12px;
+    }
+
+    /* Cards */
+    .card { padding: 14px; border-radius: 12px; }
+    .section-header h3 { font-size: 13px; }
+
+    /* Tables — scroll horizontally */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { font-size: 12px; min-width: 500px; }
+    th { padding: 8px 10px; font-size: 10px; }
+    td { padding: 9px 10px; }
+
+    /* Forms — single column */
+    .form-grid { grid-template-columns: 1fr; }
+    .form-group.full { grid-column: 1; }
+    input, select, textarea { font-size: 16px; } /* prevents iOS zoom, good for Android too */
+
+    /* Modals — full screen on mobile */
+    .modal-overlay { align-items: flex-end; }
+    .modal {
+      width: 100%; max-width: 100%; border-radius: 20px 20px 0 0;
+      max-height: 92vh;
+    }
+    .modal-body { padding: 16px; }
+    .modal-header { padding: 16px; }
+    .modal-footer { padding: 14px 16px; flex-direction: column; }
+    .modal-footer .btn { width: 100%; text-align: center; }
+
+    /* Sale items on mobile */
+    .sale-item-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .items-header { display: none; }
+    .sale-item-row input:first-child { grid-column: 1 / -1; }
+
+    /* Customer cell */
+    .customer-cell .avatar { width: 28px; height: 28px; font-size: 10px; }
+
+    /* Upcoming items */
+    .upcoming-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+    /* Filter bar */
+    .filter-bar { gap: 8px; }
+    .filter-bar input, .filter-bar select { width: 100%; min-width: unset; }
+
+    /* Login page mobile — stack vertically */
+    #login-screen { flex-direction: column; justify-content: flex-start; overflow-y: auto; }
+    .login-brand {
+      position: relative; width: 100%; padding: 48px 28px 20px;
+      align-items: center; text-align: center;
+    }
+    .login-brand-name { font-size: 52px; }
+    .login-brand-sub { font-size: 13px; }
+    .login-brand-line { margin: 16px auto 0; }
+    .login-panel {
+      position: relative; width: 100%;
+      transform: none;
+      animation: fadeUp 0.6s ease 0.3s both;
+      padding: 0 20px 40px;
+      align-items: flex-start;
+    }
+    .login-card { padding: 28px 22px; width: 100%; max-width: 100%; }
+    .orb1 { width: 250px; height: 250px; top: -60px; left: -60px; }
+    .orb2 { display: none; }
+    .orb3 { width: 150px; height: 150px; }
+
+    /* Best items grid in reports */
+    #report-best-items > div[style*="grid-template-columns"] {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Report stats 3 cols on mobile */
+    #report-stats { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+
+  @media (max-width: 380px) {
+    .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-value { font-size: 15px; }
+    #report-best-items > div[style*="grid-template-columns"] {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+  /* ===== BOTTOM NAV BAR (mobile only) ===== */
+  .mobile-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border-top: 1px solid rgba(27,67,50,0.1);
+    box-shadow: 0 -4px 24px rgba(27,67,50,0.08);
+    padding: 6px 0 8px;
+  }
+  .mobile-nav-inner {
+    display: flex; justify-content: space-around; align-items: center;
+  }
+  .mobile-nav-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 6px 10px; border-radius: 10px; cursor: pointer;
+    min-width: 52px; transition: all 0.15s; border: none; background: none;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .mobile-nav-item .m-icon { font-size: 20px; line-height: 1; }
+  .mobile-nav-item .m-label { font-size: 9.5px; color: var(--text3); font-weight: 500; }
+  .mobile-nav-item.active .m-icon { transform: scale(1.15); }
+  .mobile-nav-item.active .m-label { color: var(--primary); font-weight: 700; }
+  .mobile-nav-item:active { background: var(--primary-pale); }
+
+  /* More menu overlay */
+  .mobile-more-menu {
+    display: none; position: fixed; bottom: 70px; left: 0; right: 0; z-index: 199;
+    background: rgba(255,255,255,0.96);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(27,67,50,0.1);
+    border-radius: 20px 20px 0 0;
+    padding: 16px;
+    box-shadow: 0 -8px 32px rgba(27,67,50,0.12);
+    transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+  }
+  .mobile-more-menu.open {
+    display: block;
+    transform: translateY(0);
+  }
+  .mobile-more-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .mobile-more-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .mobile-more-item {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 12px 8px; border-radius: 12px; background: var(--surface2);
+    border: 1px solid var(--border); cursor: pointer; font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .mobile-more-item:active { background: var(--primary-pale); border-color: var(--primary); }
+  .mobile-more-item .m-icon { font-size: 22px; }
+  .mobile-more-item .m-label { font-size: 11px; color: var(--text2); font-weight: 500; text-align: center; }
+  .mobile-more-overlay {
+    display: none; position: fixed; inset: 0; z-index: 198; background: rgba(0,0,0,0.2);
+  }
+  .mobile-more-overlay.open { display: block; }
+
+  @media (max-width: 768px) {
+    .mobile-nav { display: block; }
+  }
 </style>
 </head>
 <body>
@@ -457,6 +629,53 @@
         </button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===== MOBILE BOTTOM NAV ===== -->
+<div class="mobile-nav" id="mobile-nav">
+  <div class="mobile-nav-inner">
+    <button class="mobile-nav-item active" onclick="showPage('dashboard');setMobileActive(this)" data-page="dashboard">
+      <span class="m-icon">📊</span><span class="m-label">Home</span>
+    </button>
+    <button class="mobile-nav-item" onclick="showPage('customers');setMobileActive(this)" data-page="customers">
+      <span class="m-icon">👥</span><span class="m-label">Customers</span>
+    </button>
+    <button class="mobile-nav-item" onclick="showPage('sales');setMobileActive(this)" data-page="sales">
+      <span class="m-icon">🛍️</span><span class="m-label">Sales</span>
+    </button>
+    <button class="mobile-nav-item" onclick="showPage('payments');setMobileActive(this)" data-page="payments">
+      <span class="m-icon">💰</span><span class="m-label">Payments</span>
+    </button>
+    <button class="mobile-nav-item" onclick="toggleMoreMenu()" id="more-btn">
+      <span class="m-icon">☰</span><span class="m-label">More</span>
+    </button>
+  </div>
+</div>
+
+<!-- More Menu Overlay -->
+<div class="mobile-more-overlay" id="more-overlay" onclick="closeMoreMenu()"></div>
+<div class="mobile-more-menu" id="more-menu">
+  <div class="mobile-more-title">More Pages</div>
+  <div class="mobile-more-grid">
+    <button class="mobile-more-item" onclick="showPage('returns');closeMoreMenu();setMobileActive(document.getElementById('more-btn'))">
+      <span class="m-icon">↩️</span><span class="m-label">Returns</span>
+    </button>
+    <button class="mobile-more-item" onclick="showPage('repairs');closeMoreMenu();setMobileActive(document.getElementById('more-btn'))">
+      <span class="m-icon">🔧</span><span class="m-label">Repairs</span>
+    </button>
+    <button class="mobile-more-item" onclick="showPage('items');closeMoreMenu();setMobileActive(document.getElementById('more-btn'))">
+      <span class="m-icon">📦</span><span class="m-label">Items</span>
+    </button>
+    <button class="mobile-more-item" onclick="showPage('reports');closeMoreMenu();setMobileActive(document.getElementById('more-btn'))">
+      <span class="m-icon">📈</span><span class="m-label">Reports</span>
+    </button>
+    <button class="mobile-more-item" onclick="exportData();closeMoreMenu()">
+      <span class="m-icon">💾</span><span class="m-label">Backup</span>
+    </button>
+    <button class="mobile-more-item" onclick="doLogout();closeMoreMenu()">
+      <span class="m-icon">🚪</span><span class="m-label">Sign Out</span>
+    </button>
   </div>
 </div>
 
@@ -2046,6 +2265,32 @@ function initParticles() {
   }
   draw();
   window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+}
+
+
+// ===== MOBILE NAV =====
+function setMobileActive(el) {
+  document.querySelectorAll('.mobile-nav-item').forEach(i => i.classList.remove('active'));
+  if(el) el.classList.add('active');
+}
+function toggleMoreMenu() {
+  const menu = document.getElementById('more-menu');
+  const overlay = document.getElementById('more-overlay');
+  const isOpen = menu.classList.contains('open');
+  if(isOpen) { closeMoreMenu(); }
+  else { menu.style.display='block'; overlay.classList.add('open'); setTimeout(()=>menu.classList.add('open'),10); }
+}
+function closeMoreMenu() {
+  const menu = document.getElementById('more-menu');
+  const overlay = document.getElementById('more-overlay');
+  menu.classList.remove('open');
+  overlay.classList.remove('open');
+  setTimeout(()=>{ if(!menu.classList.contains('open')) menu.style.display='none'; }, 260);
+}
+// Show/hide mobile nav based on auth state
+function updateMobileNavVisibility(show) {
+  const nav = document.getElementById('mobile-nav');
+  if(nav) nav.style.display = show ? 'block' : 'none';
 }
 
 // ===== INIT =====
